@@ -7,10 +7,17 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
     <style>
-        .dragging {
-            opacity: 0.5;
-            background-color: #f8d7da;
-        }
+.draggable {
+    cursor: grab;
+}
+
+.dragging {
+    opacity: 0.7;
+    background-color: #f8d7da !important; /* Fondo rojo claro */
+    border: 2px dashed #dc3545 !important; /* Borde rojo punteado */
+    transform: scale(1.05); /* Hace que la tarea se vea más grande */
+}
+
         .dropzone {
             background-color: #d4edda;
             /* border: 2px dashed #155724; */
@@ -84,8 +91,17 @@
         }
 
         function dragTask(event, index) {
-            event.dataTransfer.setData("text", index);
-        }
+    event.dataTransfer.setData("text", index);
+    
+    // Obtener la fila arrastrada y agregarle la clase "dragging"
+    setTimeout(() => {
+        event.target.closest("tr").classList.add("dragging");
+    }, 0);
+}
+
+function resetTask(event) {
+    event.target.closest("tr").classList.remove("dragging");
+}
 
         function allowDrop(event) {
             event.preventDefault();
@@ -138,6 +154,31 @@
             localStorage.removeItem("completedTasks");
             loadTasks();
         }
+
+        document.getElementById("taskInput").addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        addTask();
+    }
+});
+
+function editTask(index) {
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+    let newText = prompt("Editar tarea:", tasks[index].text);
+
+    if (newText !== null && newText.trim() !== "") {
+        tasks[index].text = newText;
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+        loadTasks(); // Recarga la lista de tareas
+    }
+}
+
+function deleteTask(index) {
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+    tasks.splice(index, 1); // Elimina la tarea en la posición index
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+    loadTasks(); // Recarga la lista de tareas
+}
+
     </script>
 </body>
 </html>
