@@ -15,7 +15,7 @@ function renderTasks(taskArray, elementId, isCompleted) {
             ${isCompleted ? `<td>${task.completed}</td>` : ''}
             <td>
                 ${isCompleted ? `<button class="btn btn-danger btn-sm" onclick="deleteCompletedTask(${index})"><i class="bi bi-trash"></i></button>` : `
-                <button class="btn btn-warning btn-sm" onclick="editTask(${index})"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-warning text-white btn-sm" onclick="editTask(${index})"><i class="bi bi-pencil"></i></button>
                 <button class="btn btn-danger btn-sm" onclick="deleteTask(${index})"><i class="bi bi-trash"></i></button>
                 <button class="btn btn-success btn-sm" onclick="completeTask(${index})"><i class="bi bi-check-circle"></i></button>`}
             </td>
