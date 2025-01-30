@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +9,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
 
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="styles.css">
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js')
@@ -17,6 +17,27 @@
         }
     </script>
 </head>
+<style>
+    .draggable {
+        cursor: grab;
+    }
+
+    .dragging {
+        opacity: 0.7;
+        background-color: #f8d7da !important;
+        /* Fondo rojo claro */
+        border: 2px dashed #dc3545 !important;
+        /* Borde rojo punteado */
+        transform: scale(1.05);
+        /* Hace que la tarea se vea más grande */
+    }
+
+    .dropzone {
+        background-color: #d4edda;
+        /* border: 2px dashed #155724; */
+        transition: background-color 0.3s ease-in-out;
+    }
+</style>
 
 <body class="bg-dark d-flex flex-column align-items-center py-5">
     <div class="container bg-white p-4 shadow rounded mb-4">
@@ -60,8 +81,210 @@
                 Historial</button>
         </div>
     </div>
+</body>
 
-    <script src="app.js"></script>
+</html>
+
+<script>
+    document.addEventListener("DOMContentLoaded", loadTasks);
+
+    function loadTasks() {
+        let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        let completedTasks = JSON.parse(localStorage.getItem("completedTasks")) || [];
+        renderTasks(tasks, "taskList", false);
+        renderTasks(completedTasks, "completedTaskList", true);
+
+        let message = document.getElementById("noTasksMessage");
+        if (tasks.length === 0) {
+            message.style.display = "block";
+        } else {
+            message.style.display = "none";
+        }
+    }
+
+    function renderTasks(taskArray, elementId, isCompleted) {
+        document.getElementById(elementId).innerHTML = taskArray.map((task, index) => `
+        <tr ${!isCompleted ? `draggable="true" ondragstart="dragTask(event, ${index})" ondragend="resetTask(event)" class="draggable"` : ''}>
+            <td>${task.text}</td>
+            <td>${task.added}</td>
+            ${isCompleted ? `<td>${task.completed}</td>` : ''}
+            <td>
+                ${isCompleted ? `<button class="btn btn-danger btn-sm" onclick="deleteCompletedTask(${index})"><i class="bi bi-trash"></i></button>` : `
+                <button class="btn btn-warning btn-sm" onclick="editTask(${index})"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-danger btn-sm" onclick="deleteTask(${index})"><i class="bi bi-trash"></i></button>
+                <button class="btn btn-success btn-sm" onclick="completeTask(${index})"><i class="bi bi-check-circle"></i></button>`}
+            </td>
+        </tr>
+    `).join('');
+    }
+
+    function dragTask(event, index) {
+        event.dataTransfer.setData("text", index);
+        setTimeout(() => {
+            event.target.closest("tr").classList.add("dragging");
+        }, 0);
+    }
+
+    function resetTask(event) {
+        event.target.closest("tr").classList.remove("dragging");
+    }
+
+    function allowDrop(event) {
+        event.preventDefault();
+    }
+
+    function dropTask(event) {
+        event.preventDefault();
+        let index = event.dataTransfer.getData("text");
+        completeTask(index);
+    }
+
+    function addTask() {
+        let taskInput = document.getElementById("taskInput");
+        let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        let message = document.getElementById("noTasksMessage");
+
+        if (!taskInput.value.trim()) {
+            alert("Por favor, escribe una tarea antes de agregarla.");
+            return;
+        }
+
+        tasks.unshift({ text: taskInput.value, added: new Date().toLocaleString() });
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+        taskInput.value = "";
+        loadTasks();
+    }
+
+    function completeTask(index) {
+        let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        let completedTasks = JSON.parse(localStorage.getItem("completedTasks")) || [];
+        let completedTask = tasks.splice(index, 1)[0];
+        completedTask.completed = new Date().toLocaleString();
+        completedTasks.unshift(completedTask);
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+        localStorage.setItem("completedTasks", JSON.stringify(completedTasks));
+        loadTasks();
+    }
+
+    function deleteCompletedTask(index) {
+        let completedTasks = JSON.parse(localStorage.getItem("completedTasks")) || [];
+        completedTasks.splice(index, 1);
+        localStorage.setItem("completedTasks", JSON.stringify(completedTasks));
+        loadTasks();
+    }
+
+    function clearCompletedTasks() {
+        localStorage.removeItem("completedTasks");
+        loadTasks();
+    }
+
+    document.getElementById("taskInput").addEventListener("keypress", function (event) {
+        if (event.key === "Enter") {
+            addTask();
+        }
+    });
+
+    function editTask(index) {
+        let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        let newText = prompt("Editar tarea:", tasks[index].text);
+
+        if (newText !== null && newText.trim() !== "") {
+            tasks[index].text = newText;
+            localStorage.setItem("tasks", JSON.stringify(tasks));
+            loadTasks();
+        }
+    }
+
+    function deleteTask(index) {
+        let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        tasks.splice(index, 1);
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+        loadTasks();
+    }
+
+    // Agregar el mensaje de "No hay tareas por realizar"
+    document.addEventListener("DOMContentLoaded", function () {
+        let container = document.querySelector(".container");
+        let message = document.createElement("p");
+        message.id = "noTasksMessage";
+        message.textContent = "No tienes tareas por realizar.";
+        message.style.display = "none";
+        message.style.textAlign = "center";
+        message.style.color = "gray";
+        container.appendChild(message);
+        loadTasks();
+    });
+
+    // Configuración de paginación
+    const ITEMS_PER_PAGE = 5;
+    let currentPageTasks = 1;
+    let currentPageCompleted = 1;
+
+    function loadTasks() {
+        let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        let completedTasks = JSON.parse(localStorage.getItem("completedTasks")) || [];
+
+        // Calcular páginas totales
+        const totalPagesTasks = Math.ceil(tasks.length / ITEMS_PER_PAGE);
+        const totalPagesCompleted = Math.ceil(completedTasks.length / ITEMS_PER_PAGE);
+
+        // Obtener elementos para la página actual
+        const startTasks = (currentPageTasks - 1) * ITEMS_PER_PAGE;
+        const endTasks = startTasks + ITEMS_PER_PAGE;
+        const startCompleted = (currentPageCompleted - 1) * ITEMS_PER_PAGE;
+        const endCompleted = startCompleted + ITEMS_PER_PAGE;
+
+        const currentTasks = tasks.slice(startTasks, endTasks);
+        const currentCompleted = completedTasks.slice(startCompleted, endCompleted);
+
+        renderTasks(currentTasks, "taskList", false);
+        renderTasks(currentCompleted, "completedTaskList", true);
+
+        // Renderizar paginación
+        renderPagination(totalPagesTasks, "taskPagination", currentPageTasks, true);
+        renderPagination(totalPagesCompleted, "completedPagination", currentPageCompleted, false);
+
+        let message = document.getElementById("noTasksMessage");
+        if (tasks.length === 0) {
+            message.style.display = "block";
+        } else {
+            message.style.display = "none";
+        }
+    }
+
+    function renderPagination(totalPages, containerId, currentPage, isTaskList) {
+        const container = document.getElementById(containerId) || createPaginationContainer(containerId, isTaskList);
+        container.innerHTML = '';
+
+        for (let i = 1; i <= totalPages; i++) {
+            const button = document.createElement('button');
+            button.className = `btn btn-sm ${i === currentPage ? 'btn-dark' : 'btn-outline-dark'} m-1`;
+            button.textContent = i;
+            button.onclick = () => {
+                if (isTaskList) {
+                    currentPageTasks = i;
+                } else {
+                    currentPageCompleted = i;
+                }
+                loadTasks();
+            };
+            container.appendChild(button);
+        }
+    }
+
+    function createPaginationContainer(containerId, isTaskList) {
+        const container = document.createElement('div');
+        container.id = containerId;
+        container.className = 'text-center mt-3';
+
+        const targetTable = isTaskList ?
+            document.getElementById('taskList').closest('.table-responsive') :
+            document.getElementById('completedTaskList').closest('.table-responsive');
+
+        targetTable.after(container);
+        return container;
+    }
+</script>
 </body>
 
 </html>
